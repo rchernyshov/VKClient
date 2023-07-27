@@ -10,9 +10,4 @@ namespace VKClient.VKClasses
     {
         public T response { get; set; }
     }
-    public class ListResponse<T>
-    {
-        public List<T> response { get; set; }
-    }
-
 }

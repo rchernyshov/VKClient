@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Web;
+using VKClient.VKApplication.VKClient.model;
+using VKClient.VKApplication.VKClient.Service;
 
 namespace VKClient.VKClasses
 {
@@ -16,21 +17,6 @@ namespace VKClient.VKClasses
         public string last_name { get; set; }
         public bool can_access_closed { get; set; }
         public bool is_closed { get; set; }
-        
-
-        async public Task<ListResponse<User>> Get(string id)
-        {
-            HttpResponseMessage response = await VkGet("users.get", new Dictionary<string, string>
-            {
-                ["user_ids"] = id
-            });
-            var content = await response.Content.ReadAsStringAsync();
-
-            var deserializedResponseUser = JsonSerializer.Deserialize<ListResponse<User>>(content);
-            if(deserializedResponseUser.response == null)
-                return null;
-            else return deserializedResponseUser;
-        }
 
         public string GetUserName()
         {
@@ -59,13 +45,18 @@ namespace VKClient.VKClasses
             }
         }
 
-        async public Task<int> GetCountFriends()
+        async public Task<ListResponse<User>> ResponseListGetUsers(string id)
         {
-            Friends friends= new Friends();
-            Response<Friends> response;
-            response = await friends.Get(id.ToString());
-            return response.response.count;
-        }
+            HttpResponseMessage response = await VkGet("users.get", new Dictionary<string, string>
+            {
+                ["user_ids"] = id
+            });
+            var content = await response.Content.ReadAsStringAsync();
 
+            var deserializedResponseUser = JsonSerializer.Deserialize<ListResponse<User>>(content);
+            if (deserializedResponseUser.response == null)
+                return null;
+            else return deserializedResponseUser;
+        }
     }
 }

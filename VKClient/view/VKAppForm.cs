@@ -19,20 +19,20 @@ using System.IO;
 using System.Diagnostics;
 using System.Reflection;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using VKClient.VKApplication.VKClient;
 
 namespace VKClient
 {
     public partial class VKClientForm : Form
     {
-        Friends friends = new Friends();
-        User user = new User();
-        List<User> listUsers = new List<User>();
+        VkClient client;
         List<User> listFavoriets = new List<User>();
         FavoriteUsers fileFavoriets = new FavoriteUsers();
 
         public VKClientForm()
         {
             InitializeComponent();
+            client = new VkClient();
             listFavoriets = fileFavoriets.Open();
             FillComboboxFavoriets(listFavoriets);
         }
@@ -68,107 +68,44 @@ namespace VKClient
         {
             listBoxResponse.Items.Add(text);
         }
-        async public Task<bool> SetInfoAboutCurrUser()
+        private void clear()
         {
-            string userId = await ExtractUserIdFromUrl(textBoxUserID.Text);
-            if (userId == null) 
-                return false;
-            else
-            {
-                ListResponse<User> users = await user.Get(userId);
-                user = users.response[0];
-                return true;
-            }
+            ClearMainBox();
+            textBoxUserID.Text = string.Empty;
+            client.listUsers.Clear();
+            comboBoxFavoriets.Text = "Список избранных";
+            progressBar.Value = 0;
+        }
+        public void UpdateCombobox()
+        {
+            fileFavoriets.SaveFavoriets(listFavoriets);
+            listFavoriets.Clear();
+            listFavoriets = fileFavoriets.Open();
+            FillComboboxFavoriets(listFavoriets);
+            comboBoxFavoriets.Text = "Избранное";
         }
 
-        async Task<string> ExtractUserIdFromUrl(string input)
-        {
-            if (string.IsNullOrEmpty(input))
-                return null;
-            if (int.TryParse(input, out int userId))
-            {
-                return input;
-            }
-            else
-            {
-                try
-                {
-                    var uri = new Uri(input);
-                   var pathSegments = uri.Segments;
-                   if (pathSegments.Length > 2 && pathSegments[1] == "id")
-                   {
-                       return pathSegments[2].TrimEnd('/').Replace("id", "");
-                   }
-                   else if (pathSegments[1] == "photo")
-                   {
-                       var query = HttpUtility.ParseQueryString(uri.Query);
-                       if (query.AllKeys.Contains("oid"))
-                           return query["oid"];
-                       else
-                           return null;
-                   }
-                   else if (pathSegments.Length > 1 && !pathSegments[1].Contains("."))
-                   {
-                       input = await user.GetIdUser(pathSegments[1].TrimEnd('/').Replace("id", ""));
-                       return input;
-                   }
-                   else
-                   {
-                       // handle different url format if needed
-                       return null;
-                   }   
-                }
-                catch (Exception ex) { return null; }
-            }
-        }
+
 
         async private void buttonMakeRequest_Click(object sender, EventArgs e)
         {
             ClearMainBox();
-            if (await SetInfoAboutCurrUser())
-            {
-                AddResponseText("Гружу...");
-
-                if (radioBtnFriends.Checked)
-                    if (checkBoxSavedPhoto.Checked)
-                    {
-                        progressFill(await user.GetCountFriends());
-                        listUsers = await friends.GetListFriendsWithOpenSavedAlbum(user.id.ToString(), ((int)numericUpDownCyles.Value));
-                        
-                    }
-                    else listUsers = await friends.GetListFriends(user.id.ToString());
-
-                try
+            if (radioBtnFriends.Checked)
+                if (checkBoxSavedPhoto.Checked)
                 {
-                      if (listUsers.Count == 0)
-                      {
-                        AddResponseText("У чела нет друзей(");
-                          return;
-                      }
-
-                      ClearMainBox();
-                      PrintList(listUsers);
+                    PrintList(await client.MakeRequestFriendsWithOpenSavedAlbumAsync(textBoxUserID.Text));
                 }
-                catch (Exception ex) {
-                    AddResponseText("Неверно указан id пользователя");
-                    return;
-                }
-            }
-            else
-            {
-                AddResponseText("Неверно указан id пользователя");
-                return;
-            }
+                else PrintList(await client.MakeRequestFriendsAsync(textBoxUserID.Text));
         }
 
         private void btnSave_Click(object sender, EventArgs e)
         {
-            string folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"{user.GetUserName()}"); // не работает
+            string folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"{client.user.GetUserName()}"); // не работает
             string filePath = Path.Combine(folderPath, DateTime.Now.ToString("yyyy-MM-dd") + ".xml");
             WorkWithFile fileSave = new WorkWithFile(filePath);
             try
             {
-                fileSave.Save(listUsers);
+                fileSave.Save(client.listUsers);
             }
             catch { return; }
         }
@@ -177,7 +114,7 @@ namespace VKClient
             WorkWithFile fileSave = new WorkWithFile(Explorer.SaveDialog());
             try
             {
-                fileSave.Save(listUsers);
+                fileSave.Save(client.listUsers);
             }
             catch { return; }
         }
@@ -199,15 +136,6 @@ namespace VKClient
             clear();
         }
 
-        private void clear()
-        {
-            ClearMainBox();
-            textBoxUserID.Text = string.Empty;
-            listUsers.Clear();
-            comboBoxFavoriets.Text = "Список избранных";
-            progressBar.Value = 0;
-        }
-
         private void btnCompare_Click(object sender, EventArgs e)
         {
             WorkWithFile filesCompare = new WorkWithFile(Explorer.OpenDialog(true));
@@ -218,17 +146,17 @@ namespace VKClient
 
             List<User> usersAdd = filesCompare.CompareListsAdd(usersForCompare);
             List<User> usersDelete = filesCompare.CompareListsDelete(usersForCompare);
-            listUsers.Clear();
+            client.listUsers.Clear();
             ClearMainBox();
             if (usersAdd.Count != 1)
             {
-                listUsers.AddRange(usersAdd);
+                client.listUsers.AddRange(usersAdd);
                 AddResponseText("Добавленные пользователи:");
                 PrintList(usersAdd);
             }
             if (usersDelete.Count != 1)
             {
-                listUsers.AddRange(usersDelete);
+                client.listUsers.AddRange(usersDelete);
                 AddResponseText("Удаленные пользователи:");
                 PrintList(usersDelete);
             }
@@ -251,9 +179,9 @@ namespace VKClient
 
         async private void btnFavorietsAdd_Click(object sender, EventArgs e)
         {
-            if(await SetInfoAboutCurrUser())
+            if(await client.SetInfoAboutCurrUser(textBoxUserID.Text))
             {
-                listFavoriets.Add(user);
+                listFavoriets.Add(client.user);
                 UpdateCombobox();
             }
         }
@@ -262,15 +190,6 @@ namespace VKClient
         {
             listFavoriets.RemoveAt(comboBoxFavoriets.SelectedIndex);
             UpdateCombobox();
-        }
-
-        public void UpdateCombobox()
-        {
-            fileFavoriets.SaveFavoriets(listFavoriets);
-            listFavoriets.Clear();
-            listFavoriets = fileFavoriets.Open();
-            FillComboboxFavoriets(listFavoriets);
-            comboBoxFavoriets.Text = "Избранное";
         }
 
         private void comboBoxFavoriets_SelectedIndexChanged(object sender, EventArgs e)
@@ -284,11 +203,11 @@ namespace VKClient
             {
                 if(listBoxResponse.SelectedItems.Count == 0)
                 {
-                    Browser.OpenProfile(listFavoriets[comboBoxFavoriets.SelectedIndex].id.ToString());
+                    client.browser.OpenProfile(listFavoriets[comboBoxFavoriets.SelectedIndex].id.ToString());
                 }
                 else
                 {
-                    Browser.OpenProfile(listUsers[listBoxResponse.SelectedIndex].id.ToString());
+                    client.browser.OpenProfile(client.listUsers[listBoxResponse.SelectedIndex].id.ToString());
                 }
             }
             catch {
@@ -305,11 +224,11 @@ namespace VKClient
         {
             try
             {
-                foreach (var user in listUsers)
+                foreach (var user in client.listUsers)
                 {
                     try
                     {
-                        Browser.OpenProfile(user.id.ToString());
+                        client.browser.OpenProfile(user.id.ToString());
                     }
                     catch { }
                 }

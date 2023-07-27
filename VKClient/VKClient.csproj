@@ -115,39 +115,45 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Authorization.cs">
+    <Compile Include="view\Authorization.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Authorization.Designer.cs">
+    <Compile Include="view\Authorization.Designer.cs">
       <DependentUpon>Authorization.cs</DependentUpon>
     </Compile>
-    <Compile Include="VKClasses\Browser.cs" />
-    <Compile Include="VKClasses\Explorer.cs" />
-    <Compile Include="VKClasses\HttpResponser.cs" />
-    <Compile Include="VKClasses\Key.cs" />
-    <Compile Include="VKClasses\Photo.cs" />
+    <Compile Include="VKApplication\VKClient\Browser\Browser.cs" />
+    <Compile Include="FileService\Explorer.cs" />
+    <Compile Include="VKApplication\VKClient\model\ListResponse.cs" />
+    <Compile Include="VKApplication\VKClient\model\Photo.cs" />
+    <Compile Include="VKApplication\VKClient\model\SizePhoto.cs" />
+    <Compile Include="VKApplication\VKClient\Response\HttpResponser.cs" />
+    <Compile Include="VKApplication\VKClient\keys\Key.cs" />
+    <Compile Include="VKApplication\VKClient\model\Album.cs" />
     <Compile Include="Component1.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Component1.Designer.cs">
       <DependentUpon>Component1.cs</DependentUpon>
     </Compile>
-    <Compile Include="VKAppForm.cs">
+    <Compile Include="view\VKAppForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="VKAppForm.Designer.cs">
+    <Compile Include="view\VKAppForm.Designer.cs">
       <DependentUpon>VKAppForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="VKClasses\Response.cs" />
-    <Compile Include="VKClasses\Friends.cs" />
-    <Compile Include="VKClasses\User.cs" />
-    <Compile Include="VKClasses\WorkWithFile.cs" />
-    <EmbeddedResource Include="Authorization.resx">
+    <Compile Include="VKApplication\VKClient\model\Response.cs" />
+    <Compile Include="VKApplication\VKClient\model\Friends.cs" />
+    <Compile Include="VKApplication\VKClient\model\User.cs" />
+    <Compile Include="FileService\WorkWithFile.cs" />
+    <Compile Include="VKApplication\VKClient\Service\ListUtil.cs" />
+    <Compile Include="VKApplication\VKClient\Service\UserService.cs" />
+    <Compile Include="VKApplication\VKClient\VkClient.cs" />
+    <EmbeddedResource Include="view\Authorization.resx">
       <DependentUpon>Authorization.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="VKAppForm.resx">
+    <EmbeddedResource Include="view\VKAppForm.resx">
       <DependentUpon>VKAppForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -173,6 +179,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

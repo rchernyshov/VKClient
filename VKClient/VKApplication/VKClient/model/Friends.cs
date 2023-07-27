@@ -5,16 +5,25 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using VKClient.VKApplication.VKClient;
+using VKClient.VKApplication.VKClient.model;
+using VKClient.VKApplication.VKClient.Service;
 
 namespace VKClient.VKClasses
 {
     public class Friends : HttpResponser
     {
-        User user = new User();
         public int count { get; set; }
         public List<int> items { get; set; }
 
-        async public Task<Response<Friends>> Get(string id)
+        async public Task<int> GetCountFriends(User user)
+        {
+            Response<Friends> response;
+            response = await ResponseGetFriends(user.id.ToString());
+            return response.response.count;
+        }
+
+        async public Task<Response<Friends>> ResponseGetFriends(string id)
         {
             HttpResponseMessage response = await VkGet("friends.get", new Dictionary<string, string>
             {
@@ -28,17 +37,17 @@ namespace VKClient.VKClasses
 
         async public Task<List<User>> GetListFriends(string id)
         {
-
-            Response<Friends> responseFriends = await Get(id);
+            VkClient client = new VkClient();
+            Response<Friends> responseFriends = await ResponseGetFriends(id);
             if (responseFriends.response == null)
                 return null;
             string ids = string.Join(",", responseFriends.response.items);
-            ListResponse<User> listUsers = await user.Get(ids);
+            ListResponse<User> listUsers = await client.user.ResponseListGetUsers(ids);
             return listUsers.response;
         }
         async public Task<List<User>> GetListFriendsWithOpenSavedAlbum(string id, int countResponse)
         {
-            Album album = new Album();
+            ListUtil listUtil = new ListUtil();
             List<User> listUsers = await GetListFriends(id);
             List<List<User>> listOfListsUsersWithSavedAlbum = new List<List<User>>();
             for (int i = 0; i < countResponse; i++)
@@ -50,13 +59,19 @@ namespace VKClient.VKClasses
             {
                 listOfListsUsersWithSavedAlbum[i] = await SetListFriendsWithOpenSavedAlbum(listUsers);
             }
-            return CombineListsWithoutDuplicates<User>(listOfListsUsersWithSavedAlbum);
+            return listUtil.CombineListsWithoutDuplicates<User>(listOfListsUsersWithSavedAlbum);
+
+        }
+        async public Task<List<User>> GetListFriendsWithOpenSavedAlbum(string id)
+        {
+            Album album = new Album();
+            return await GetListFriends(id);
 
         }
 
         async public Task<List<User>> GetListFriendsWithOpenSavedAlbumAsync(string id, int countResponse)
         {
-            Album album = new Album();
+            ListUtil listUtil = new ListUtil();
             List<User> listUsers = await GetListFriends(id);
             List<Task<List<User>>> tasks = new List<Task<List<User>>>();
 
@@ -67,17 +82,17 @@ namespace VKClient.VKClasses
 
             List<List<User>> listOfListsUsersWithSavedAlbum = tasks.Select(x => x.Result).ToList();
 
-            return CombineListsWithoutDuplicates<User>(listOfListsUsersWithSavedAlbum);
+            return listUtil.CombineListsWithoutDuplicates<User>(listOfListsUsersWithSavedAlbum);
         }
         private async Task<List<User>> SetListFriendsWithOpenSavedAlbumAsync(List<User> listUsers)
         {
-            Album album = new Album();
+            VkClient client = new VkClient();
             List<Task<User>> tasks = new List<Task<User>>();
             foreach (var user in listUsers)
             {
                 tasks.Add(Task.Run(async () =>
                 {
-                    if (await album.isOpenSavedAlbum(user.id.ToString()))
+                    if (await client.album.isOpenSavedAlbum(user.id.ToString()))
                     {
                         return user;
                     }
@@ -92,29 +107,16 @@ namespace VKClient.VKClasses
         }
         async private Task<List<User>> SetListFriendsWithOpenSavedAlbum(List<User> listUsers)
         {
-            Album album = new Album();
+            VkClient client = new VkClient();
             List<User> listFriendsWithOpenSavedAlbum = new List<User>();
             foreach (var user in listUsers)
             {
-                if (await album.isOpenSavedAlbum(user.id.ToString()))
+                if (await client.album.isOpenSavedAlbum(user.id.ToString()))
                 {
                     listFriendsWithOpenSavedAlbum.Add(user);
                 }
             }
             return listFriendsWithOpenSavedAlbum;
-        }
-
-        private List<T> CombineListsWithoutDuplicates<T>(List<List<T>> listsOfLists)
-        {
-            HashSet<T> combinedSet = new HashSet<T>();
-            foreach (List<T> list in listsOfLists)
-            {
-                foreach (T item in list)
-                {
-                    combinedSet.Add(item);
-                }
-            }
-            return combinedSet.ToList();
         }
     }
 }

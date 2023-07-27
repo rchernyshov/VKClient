@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace VKClient.VKClasses
 {
-    public static class Browser
+    public class Browser
     {
-        public static void OpenProfile(string userId)
+        public void OpenProfile(string userId)
         {
             string url = "https://vk.com/id" + userId;
             Process.Start(url);

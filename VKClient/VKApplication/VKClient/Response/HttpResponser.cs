@@ -24,7 +24,7 @@ namespace VKClient.VKClasses
             ServicePointManager.FindServicePoint(new Uri("https://api.vk.com")).ConnectionLeaseTimeout = 60000;
         }
 
-        public string PrettyJson(string unPrettyJson)
+        protected string PrettyJson(string unPrettyJson)
         {
             var options = new JsonSerializerOptions()
             {
@@ -36,7 +36,7 @@ namespace VKClient.VKClasses
             return JsonSerializer.Serialize(jsonElement, options);
         }
 
-        async public Task<HttpResponseMessage> VkGet(string method, Dictionary<string, string> parameters)
+        async protected Task<HttpResponseMessage> VkGet(string method, Dictionary<string, string> parameters)
         {
             var builder = new UriBuilder($"https://api.vk.com/method/{method}");
             var query = HttpUtility.ParseQueryString(builder.Query);
